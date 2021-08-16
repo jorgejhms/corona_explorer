@@ -8,6 +8,8 @@ library(lubridate)
 
 # Data
 
+## PENDIENTE, cambiar rutas de data a descarga directa y agregar nuevos comandos de limpieza!!!!!
+
 da_p <- read.csv("../data/positivos_covid.csv", sep = ";") %>%
     mutate(
         FECHA_RESULTADO = as.Date(as.character(FECHA_RESULTADO), format = "%Y%m%d"),
