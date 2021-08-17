@@ -4,68 +4,67 @@ Sys.setlocale(category = "LC_ALL", locale = "es_ES.UTF-8") # setea el sistema en
 library(shiny)
 library(tidyverse)
 library(lubridate)
+library(janitor)
 
+# aumento memoría
+# memory.limit(size = 250000) Solo windows
+# memory.size() Solo Windows
 
 # Data
 
 ## PENDIENTE, cambiar rutas de data a descarga directa y agregar nuevos comandos de limpieza!!!!!
 
-da_p <- read.csv("../data/positivos_covid.csv", sep = ";") %>%
+positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
+fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";") 
+vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
+
+positivos %>%
+    clean_names() %>%
     mutate(
-        FECHA_RESULTADO = as.Date(as.character(FECHA_RESULTADO), format = "%Y%m%d"),
-        EDAD_n = as.numeric(EDAD),
-        DEPARTAMENTO = recode(DEPARTAMENTO, "LIMA REGION" = "LIMA")
-        #Junta Lima y Lima pronvincias
+        fecha_resultado = as.Date(as.character(fecha_resultado), format = "%Y%m%d"),
+        edad = as.numeric(edad),
+        departamento = recode(departamento, "LIMA REGION" = "LIMA") #Junta Lima y Lima pronvincias
     ) %>%
-    filter(!is.na(FECHA_RESULTADO))
+    filter(!is.na(fecha_resultado))
 
-da_f <- read.csv("../data/fallecidos_covid.csv", sep = ";") %>%
+fallecidos %>%
+    clean_names() %>%
     mutate(
-        FECHA_CORTE = as.Date(as.character(FECHA_CORTE), format = "%Y%m%d"),
-        FECHA_FALLECIMIENTO = as.Date(as.character(FECHA_FALLECIMIENTO),
-                                      format = "%Y%m%d"),
-        FECHA_NAC = as.Date(as.character(FECHA_NAC), format = "%Y%m%d"),
+        fecha_corte = as.Date(as.character(fecha_corte), format = "%Y%m%d"),
+        fecha_fallecimiento = as.Date(as.character(fecha_fallecimiento), format = "%Y%m%d")
     ) %>%
-    filter(!is.na(FECHA_FALLECIMIENTO))
+    filter(!is.na(fecha_fallecimiento))
 
-sinadef <-
-    read.csv(
-        "../data/fallecidos_sinadef.csv",
-        sep = ";",
-        fileEncoding = "latin1",
-        skip = 2
+vacunacion %>%
+    clean_names() %>%
+    mutate(
+        fecha_corte = as.Date(as.character(fecha_corte), format = "%Y%m%d"),
+        fecha_vacunacion = as.Date(as.character(fecha_vacunacion), format = "%Y%m%d")
     ) %>%
-    mutate(FECHA = as.Date(FECHA),
-           año = year(FECHA)) %>%
-    filter(
-        `DEPARTAMENTO.DOMICILIO` != "EXTRANJERO",
-        `MUERTE.VIOLENTA` %in% c("SIN REGISTRO", "NO SE CONOCE")
-    )
-
+    filter(!is.na(fecha_vacunacion))
 
 ## Datos importantes
 
 fecha_actualizacion <-
-    da_p$FECHA_CORTE %>% last() %>% as.character() %>% as.Date("%Y%m%d")
+    positivos$fecha_corte %>% last() %>% as.character() %>% as.Date("%Y%m%d")
 
 # Frontend
-ui <- htmlTemplate(
-    "template.html",
+ui <- fluidPage(
     
     #Inputs
     date = dateRangeInput(
         inputId = "date",
         label = "Fechas",
-        start = min(da_p$FECHA_RESULTADO),
+        start = min(positivos$fecha_resultado),
         end = fecha_actualizacion,
-        min = min(da_p$FECHA_RESULTADO),
+        min = min(positivos$fecha_resultado),
         max = fecha_actualizacion
     ),
     
     dep = selectInput(
         inputId = "dep",
         label = "Escoge tu región:",
-        choices = c("Todos", as.character(unique(da_p$DEPARTAMENTO))),
+        choices = c("Todos", as.character(unique(positivos$departamento))),
         selected = "Todos"
     ),
     
@@ -88,7 +87,6 @@ ui <- htmlTemplate(
     # Plots
     p_pos = plotOutput("p_pos"),
     p_fal = plotOutput("p_fal"),
-    p_sinadef = plotOutput("p_sinadef")
 )
 
 # backend
@@ -97,7 +95,7 @@ server <- function(input, output) {
     temp_pos <- reactive({
         if (input$dep != "Todos") {
             da_p <- da_p %>%
-                filter(DEPARTAMENTO == input$dep)
+                filter(departamento == input$dep)
         } else {
             da_p <- da_p
         }
@@ -106,20 +104,12 @@ server <- function(input, output) {
     temp_fal <- reactive({
         if (input$dep != "Todos") {
             da_f <- da_f %>%
-                filter(DEPARTAMENTO == input$dep)
+                filter(departamento == input$dep)
         } else {
             da_f <- da_f
         }
     })
     
-    temp_sinadef <- reactive({
-        if (input$dep != "Todos") {
-            sinadef <- sinadef %>%
-                filter(DEPARTAMENTO.DOMICILIO == input$dep)
-        } else {
-            sinadef <- sinadef
-        }
-    })
     
     # Values
     
@@ -130,32 +120,32 @@ server <- function(input, output) {
     
     output$t_pos <-
         renderText({
-            da_p %>% summarise(positivos=n()) %>% pull()
+            positivos %>% summarise(positivos=n()) %>% pull()
         })
     
     output$t_fal <-
         renderText({
-            da_f %>% summarise (fallecidos=n()) %>% pull()
+            fallecidos %>% summarise (fallecidos=n()) %>% pull()
         })
     
     output$d_pos <-
         renderText({
-            da_p %>%
-                select(FECHA_RESULTADO) %>%
-                group_by(FECHA_RESULTADO) %>%
+            positivos %>%
+                select(fecha_resultado) %>%
+                group_by(fecha_resultado) %>%
                 summarise(positivos = n()) %>%
-                filter (FECHA_RESULTADO == fecha_actualizacion) %>%
+                filter (fecha_resultado == fecha_actualizacion) %>%
                 pull()
             
         })
     
     output$d_fal <-
         renderText({
-            da_f %>%
-                select(FECHA_FALLECIMIENTO) %>%
-                group_by(FECHA_FALLECIMIENTO) %>%
+            fallecidos %>%
+                select(fecha_fallecimiento) %>%
+                group_by(fecha_fallecimiento) %>%
                 summarise(fallecidos = n()) %>%
-                filter (FECHA_FALLECIMIENTO == fecha_actualizacion) %>%
+                filter (fecha_fallecimiento == fecha_actualizacion) %>%
                 pull()
         })
     
@@ -163,13 +153,13 @@ server <- function(input, output) {
     
     output$p_pos <- renderPlot({
         temp_pos() %>%
-            select(FECHA_RESULTADO) %>%
-            group_by(FECHA_RESULTADO) %>%
+            select(fecha_resultado) %>%
+            group_by(fecha_resultado) %>%
             summarise(positivos = n()) %>%
             mutate(positivos_cum = cumsum(replace_na(positivos, 0))) %>%
-            filter(FECHA_RESULTADO >= input$date[1] &
-                       FECHA_RESULTADO <= input$date[2]) %>%
-            ggplot(aes(x = FECHA_RESULTADO, y = positivos)) +
+            filter(fecha_resultado >= input$date[1] &
+                       fecha_resultado <= input$date[2]) %>%
+            ggplot(aes(x = fecha_resultado, y = positivos)) +
             geom_bar(stat = "identity") +
             geom_line(aes(y = zoo::rollmean(positivos, input$d, fill = NA)),
                       size = 1.2,
@@ -190,13 +180,13 @@ server <- function(input, output) {
     
     output$p_fal <- renderPlot({
         temp_fal() %>%
-            select(FECHA_FALLECIMIENTO) %>%
-            group_by(FECHA_FALLECIMIENTO) %>%
+            select(fecha_fallecimiento) %>%
+            group_by(fecha_fallecimiento) %>%
             summarise(fallecidos = n()) %>%
             mutate(fallecidos_cum = cumsum(replace_na(fallecidos, 0))) %>%
-            filter(FECHA_FALLECIMIENTO >= input$date[1] &
-                       FECHA_FALLECIMIENTO <= input$date[2]) %>%
-            ggplot(aes(x = FECHA_FALLECIMIENTO, y = fallecidos)) +
+            filter(fecha_fallecimiento >= input$date[1] &
+                       fecha_fallecimiento <= input$date[2]) %>%
+            ggplot(aes(x = fecha_fallecimiento, y = fallecidos)) +
             geom_bar(stat = "identity") +
             geom_line(aes(y = zoo::rollmean(fallecidos, input$d, fill = NA)),
                       size = 1.2,
@@ -214,28 +204,6 @@ server <- function(input, output) {
                  title = element_blank())
     })
     
-    output$p_sinadef <- renderPlot({
-        temp_sinadef() %>%
-            group_by(FECHA) %>%
-            summarise(count = n()) %>%
-            filter(FECHA >= input$date[1] &
-                       FECHA <= input$date[2]) %>%
-            ggplot(aes(x = FECHA, y = count)) +
-            geom_bar(stat = "identity") +
-            geom_line(aes(y = zoo::rollmean(count, input$d, fill = NA)),
-                      size = 1.2,
-                      colour = "red1") +
-            scale_x_date(
-                date_labels = "%b",
-                breaks = "1 month",
-                minor_breaks = "1 week"
-            ) +
-            scale_color_manual(values = c (rep("darkgray", 3), "orange", "red")) +
-            labs (x = element_blank(),
-                  y = element_blank()) +
-            theme (legend.position = "bottom",
-                   legend.title = element_blank(),)
-    })
     
 }
 
