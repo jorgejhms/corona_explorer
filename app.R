@@ -6,17 +6,16 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 
-# aumento memoría
-# memory.limit(size = 250000) Solo windows
-# memory.size() Solo Windows
+memory.limit(size = 250000)
+memory.size()
 
 # Data
 
 ## PENDIENTE, cambiar rutas de data a descarga directa y agregar nuevos comandos de limpieza!!!!!
 
-positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
-fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";") 
-vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
+positivos <- data.table::fread("data/positivos_covid.csv", sep = ";") ### 
+fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";") ### directo del URL
+vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",") ### buscar como bajarlo automaticamente de zip y luego a csv
 
 positivos %>%
     clean_names() %>%
