@@ -1,4 +1,9 @@
-Sys.setlocale(category = "LC_ALL", locale = "es_ES.UTF-8") # setea el sistema en español
+# Corona Explorer
+
+# Setup -------------------------------------------------------------------
+
+# setea el sistema en español
+Sys.setlocale(category = "LC_ALL", locale = "es_ES.UTF-8") 
 
 # Librerias
 library(shiny)
@@ -10,108 +15,128 @@ library(janitor)
 # memory.limit(size = 250000) Solo windows
 # memory.size() Solo Windows
 
-# Data
-
-## PENDIENTE, cambiar rutas de data a descarga directa y agregar nuevos comandos de limpieza!!!!!
-
+# Carga de Data
 positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
-fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";") 
+fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";")
 vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
 
-positivos %>%
+# Funciones
+fechaFix <- \(variable){
+    variable %>%
+        as.character() %>% 
+        as.Date(format = "%Y%m%d")
+}
+
+# Limpieza de datos
+positivos <- positivos %>%
     clean_names() %>%
     mutate(
-        fecha_resultado = as.Date(as.character(fecha_resultado), format = "%Y%m%d"),
-        edad = as.numeric(edad),
+        fecha_corte = fechaFix(fecha_corte),
+        fecha_resultado = fechaFix(fecha_resultado),
+        #edad = as.numeric(edad),
         departamento = recode(departamento, "LIMA REGION" = "LIMA") #Junta Lima y Lima pronvincias
     ) %>%
     filter(!is.na(fecha_resultado))
 
-fallecidos %>%
+fallecidos <- fallecidos %>%
     clean_names() %>%
     mutate(
-        fecha_corte = as.Date(as.character(fecha_corte), format = "%Y%m%d"),
-        fecha_fallecimiento = as.Date(as.character(fecha_fallecimiento), format = "%Y%m%d")
+        fecha_corte = fechaFix(fecha_corte),
+        fecha_fallecimiento = fechaFix(fecha_fallecimiento)
     ) %>%
     filter(!is.na(fecha_fallecimiento))
 
-vacunacion %>%
+vacunacion <- vacunacion %>%
     clean_names() %>%
     mutate(
-        fecha_corte = as.Date(as.character(fecha_corte), format = "%Y%m%d"),
-        fecha_vacunacion = as.Date(as.character(fecha_vacunacion), format = "%Y%m%d")
+        fecha_corte = fechaFix(fecha_corte), 
+        fecha_vacunacion = fechaFix(fecha_vacunacion) 
     ) %>%
     filter(!is.na(fecha_vacunacion))
 
 ## Datos importantes
+fecha_actualizacion <- positivos$fecha_corte %>% last()
 
-fecha_actualizacion <-
-    positivos$fecha_corte %>% last() %>% as.character() %>% as.Date("%Y%m%d")
 
-# Frontend
-ui <- fluidPage(
-    
-    #Inputs
-    date = dateRangeInput(
-        inputId = "date",
-        label = "Fechas",
-        start = min(positivos$fecha_resultado),
-        end = fecha_actualizacion,
-        min = min(positivos$fecha_resultado),
-        max = fecha_actualizacion
-    ),
-    
-    dep = selectInput(
-        inputId = "dep",
-        label = "Escoge tu región:",
-        choices = c("Todos", as.character(unique(positivos$departamento))),
-        selected = "Todos"
-    ),
-    
-    dias = sliderInput(
-        inputId = "d",
-        label = "¿Media de cuantos días?",
-        min = 2,
-        max = 7,
-        value = 2,
-        step = 1
-    ),
-    
-    # Values
-    fecha_actualizacion = textOutput("fecha_actualizacion"),
-    t_pos = textOutput("t_pos"),
-    t_fal = textOutput("t_fal"),
-    d_pos = textOutput("d_pos"),
-    d_fal = textOutput("d_fal"),
-    
-    # Plots
-    p_pos = plotOutput("p_pos"),
-    p_fal = plotOutput("p_fal"),
-)
+# Frontend ----------------------------------------------------------------
 
-# backend
+ui <- fluidPage(# Application title
+    titlePanel("Corona Explorer"),
+    
+    sidebarLayout(
+        
+        # Controles Barra lateral
+        sidebarPanel(
+            #Inputs
+            dateRangeInput(
+                # Selector de fechas
+                inputId = "date",
+                label = "Fechas",
+                start = min(positivos$fecha_resultado),
+                end = fecha_actualizacion,
+                min = min(positivos$fecha_resultado),
+                max = fecha_actualizacion
+            ),
+            
+            selectInput(
+                # Selector de Región
+                inputId = "dep",
+                label = "Escoge tu región:",
+                choices = c("Todos", as.character(unique(
+                    positivos$departamento
+                ))),
+                selected = "Todos"
+            ),
+            
+            sliderInput(
+                inputId = "d",
+                label = "¿Media de cuantos días?",
+                min = 2,
+                max = 7,
+                value = 2,
+                step = 1
+            ),
+        ),
+        
+        mainPanel(
+            # Valores a mostrar
+            textOutput("fecha_actualizacion"),
+            textOutput("t_pos"),
+            textOutput("t_fal"),
+            textOutput("d_pos"),
+            textOutput("d_fal"),
+            
+            # Gráficos
+            plotOutput("p_pos"),
+            plotOutput("p_fal"),
+        )
+    ))
+
+# Backend -----------------------------------------------------------------
+
 server <- function(input, output) {
+    
     # Filtros de regiones
     temp_pos <- reactive({
         if (input$dep != "Todos") {
-            da_p <- da_p %>%
+            positivos <- positivos %>%
                 filter(departamento == input$dep)
         } else {
-            da_p <- da_p
+            positivos <- positivos
         }
     })
     
     temp_fal <- reactive({
         if (input$dep != "Todos") {
-            da_f <- da_f %>%
+            fallecidos <- fallecidos %>%
                 filter(departamento == input$dep)
         } else {
-            da_f <- da_f
+            fallecidos <- fallecidos
         }
     })
     
     
-    # Values
+    # Calculo de valores
     
     output$fecha_actualizacion <-
         renderText({
@@ -120,12 +145,12 @@ server <- function(input, output) {
     
     output$t_pos <-
         renderText({
-            positivos %>% summarise(positivos=n()) %>% pull()
+            positivos %>% summarise(positivos = n()) %>% pull()
         })
     
     output$t_fal <-
         renderText({
-            fallecidos %>% summarise (fallecidos=n()) %>% pull()
+            fallecidos %>% summarise (fallecidos = n()) %>% pull()
         })
     
     output$d_pos <-
