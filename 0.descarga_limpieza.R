@@ -1,9 +1,11 @@
 # Descarga y limpieza de datos
 
+# Ejecución de este script tomo 5min aprox
+
 # Setup ------------------------------------------------------------------------
 library(tidyverse)
 library(janitor)
-library(feather)
+library(fst)
 
 # Importación datos ------------------------------------------------------------
 
@@ -12,19 +14,13 @@ positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
 fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";")
 vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
 
-db <- list(positivos, fallecidos, vacunacion)
-names(db) <- c("positivos", "fallecidos", "vacunacion")
-rm(positivos, fallecidos, vacunacion)
-gc()
+# Funciones
+source("funciones.R")
 
 # Limpieza data ----------------------------------------------------------------
 
-db <- modify(db, mutate_if, is.character, as.factor) # Convierte a factores
-gc()
-
-db <- modify(db, clean_names) # Limpia nombres de variables
-
-db$positivos <- db$positivos %>%
+positivos <- positivos %>%
+  clean_names() %>% 
   mutate(
     fecha_corte = fechaFix(fecha_corte),
     uuid = as.character(uuid),
@@ -38,7 +34,8 @@ db$positivos <- db$positivos %>%
   ) %>%
   filter(!is.na(fecha_resultado)) # Elimina datos sin registro de fecha
 
-db$fallecidos <- db$fallecidos %>%
+fallecidos <- fallecidos %>%
+  clean_names() %>% 
   mutate(
     fecha_corte = fechaFix(fecha_corte),
     uuid = as.character(uuid),
@@ -51,7 +48,8 @@ db$fallecidos <- db$fallecidos %>%
   ) %>%
   filter(!is.na(fecha_fallecimiento))
 
-db$vacunacion <- db$vacunacion %>%
+vacunacion <- vacunacion %>%
+  clean_names() %>% 
   mutate(
     fecha_corte = fechaFix(fecha_corte),
     uuid = as.character(uuid),
@@ -66,9 +64,19 @@ db$vacunacion <- db$vacunacion %>%
   ) %>%
   filter(!is.na(fecha_vacunacion))
 
+# Transformación por distrito ---------------------------------------------
+
+positivos <- positivos %>% 
+  count(departamento, provincia, distrito, fecha_resultado, metododx, sexo)
+
+fallecidos <- fallecidos %>% 
+  count(departamento, provincia, distrito, fecha_fallecimiento, sexo)
+
+vacunacion <- vacunacion %>% 
+  count(departamento, provincia, distrito, sexo, fecha_vacunacion, fabricante, dosis, grupo_riesgo)
 
 # Guardado data -----------------------------------------------------------
 
-write_feather(db$positivos, "data/positivos.feather")
-write_feather(db$fallecidos, "data/fallecidos.feather")
-write_feather(db$vacunacion, "data/vacunacion.feather")
+write_fst(positivos, "data/positivos.fst")
+write_fst(fallecidos, "data/fallecidos.fst")
+write_fst(vacunacion, "data/vacunacion.fst")

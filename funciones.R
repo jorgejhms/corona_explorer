@@ -19,7 +19,7 @@ descargar.datos <- function() {
   )
   message("Bases de datos descargadas")
   message("Descomprimiendo base de datos de vacunación...")
-  unz("data/vacunas_covid.7z", "data/vacunas_covid.csv")
+  archive::archive_extract("data/vacunas_covid.7z", dir = "data")
   message("Base de datos descomprimida.")
 }
 
@@ -35,7 +35,7 @@ plot.diarios <- function(DataFrame, x, y) {
   ggplot(DataFrame, aes({{x}} , {{y}})) +
     geom_col() +
     theme_minimal() +
-    geom_line(aes(y = zoo::rollmean({{y}}, 3, fill = NA)),
+    geom_line(aes(y = zoo::rollmean({{y}}, 7, fill = NA)),
               size = 1.2,
               colour = "red1") +
     scale_x_date(date_labels = "%b",

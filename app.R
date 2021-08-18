@@ -16,9 +16,9 @@ memory.limit(size = 250000) # Solo windows
 memory.size() # Solo Windows
 
 # Carga de Data
-positivos <- read_feather("data/positivos.feather")
-fallecidos <- read_feather("data/fallecidos.feather")
-vacunacion <- read_feather("data/vacunacion.feather")
+positivos <- fst::read_fst("data/positivos.fst")
+fallecidos <- fst::read_fst("data/fallecidos.fst")
+vacunacion <- fst::read_fst("data/vacunacion.fst")
 
 # Funciones
 source("funciones.R")
