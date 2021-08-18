@@ -2,4 +2,8 @@
 
 Por llenar...
 
-jojo
+## Tareas
+
+-[] Crear funciones shinny app
+-[] documentar funciones
+-[] Optimizar carga de archivos

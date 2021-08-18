@@ -12,8 +12,8 @@ library(lubridate)
 library(janitor)
 
 # aumento memoría
-# memory.limit(size = 250000) Solo windows
-# memory.size() Solo Windows
+memory.limit(size = 250000) # Solo windows
+memory.size() # Solo Windows
 
 # Carga de Data
 positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
@@ -21,11 +21,7 @@ fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";")
 vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
 
 # Funciones
-fechaFix <- \(variable){
-    variable %>%
-        as.character() %>% 
-        as.Date(format = "%Y%m%d")
-}
+source("funciones.R")
 
 # Limpieza de datos
 positivos <- positivos %>%
@@ -177,6 +173,7 @@ server <- function(input, output) {
     # Gráficos
     
     output$p_pos <- renderPlot({
+        # Gráfica positivos diarios
         temp_pos() %>%
             select(fecha_resultado) %>%
             group_by(fecha_resultado) %>%
@@ -184,26 +181,12 @@ server <- function(input, output) {
             mutate(positivos_cum = cumsum(replace_na(positivos, 0))) %>%
             filter(fecha_resultado >= input$date[1] &
                        fecha_resultado <= input$date[2]) %>%
-            ggplot(aes(x = fecha_resultado, y = positivos)) +
-            geom_bar(stat = "identity") +
-            geom_line(aes(y = zoo::rollmean(positivos, input$d, fill = NA)),
-                      size = 1.2,
-                      colour = "red1") +
-            scale_x_date(
-                date_labels = "%b",
-                breaks = "1 month",
-                minor_breaks = NULL
-            ) +
-            theme(legend.position = "bottom"
-                  ,
-                  legend.title = element_blank()) +
-            labs(x = element_blank(),
-                 y = element_blank(),
-                 title = element_blank())
+            plot.diarios(fecha_resultado, positivos)
     })
     
     
     output$p_fal <- renderPlot({
+        # Gráfica fallecidos diarios
         temp_fal() %>%
             select(fecha_fallecimiento) %>%
             group_by(fecha_fallecimiento) %>%
@@ -211,22 +194,7 @@ server <- function(input, output) {
             mutate(fallecidos_cum = cumsum(replace_na(fallecidos, 0))) %>%
             filter(fecha_fallecimiento >= input$date[1] &
                        fecha_fallecimiento <= input$date[2]) %>%
-            ggplot(aes(x = fecha_fallecimiento, y = fallecidos)) +
-            geom_bar(stat = "identity") +
-            geom_line(aes(y = zoo::rollmean(fallecidos, input$d, fill = NA)),
-                      size = 1.2,
-                      colour = "red1") +
-            scale_x_date(
-                date_labels = "%b",
-                breaks = "1 month",
-                minor_breaks = NULL
-            ) +
-            theme(legend.position = "bottom"
-                  ,
-                  legend.title = element_blank()) +
-            labs(x = element_blank(),
-                 y = element_blank(),
-                 title = element_blank())
+            plot.diarios(fecha_fallecimiento, fallecidos)
     })
     
     
