@@ -16,9 +16,9 @@ memory.limit(size = 250000) # Solo windows
 memory.size() # Solo Windows
 
 # Carga de Data
-positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
-fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";")
-vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
+positivos <- read_feather("data/positivos.feather")
+fallecidos <- read_feather("data/fallecidos.feather")
+vacunacion <- read_feather("data/vacunacion.feather")
 
 # Funciones
 source("funciones.R")

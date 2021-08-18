@@ -1,22 +1,26 @@
 # Funciones
 
+library(tidyverse)
+
 descargar.datos <- function() {
   # Descarga las últimas bases de datos abiertos
   message("Descargando bases de datos...")
-  download.file(
+  curl::curl_download(
     "https://cloud.minsa.gob.pe/s/Y8w3wHsEdYQSZRp/download",
-    "data/positivos_covid.csv"
+    "data/positivos_covid.csv", quiet = FALSE
   )
-  download.file(
+  curl::curl_download(
     "https://cloud.minsa.gob.pe/s/Md37cjXmjT9qYSa/download",
-    "data/fallecidos_covid.csv"
+    "data/fallecidos_covid.csv", quiet = FALSE
   )
-  download.file(
+  curl::curl_download(
     "https://cloud.minsa.gob.pe/s/To2QtqoNjKqobfw/download",
-    "data/vacunas_covid.7z"
+    "data/vacunas_covid.7z", quiet = FALSE
   )
-  uzp("data/vacunas_covid.7z", "data/vacunas_covid.csv")
   message("Bases de datos descargadas")
+  message("Descomprimiendo base de datos de vacunación...")
+  unz("data/vacunas_covid.7z", "data/vacunas_covid.csv")
+  message("Base de datos descomprimida.")
 }
 
 fechaFix <- function(variable) {

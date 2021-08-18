@@ -3,108 +3,72 @@
 # Setup ------------------------------------------------------------------------
 library(tidyverse)
 library(janitor)
-library(curl)
+library(feather)
 
 # Importación datos ------------------------------------------------------------
 
-vacunacion <-
-  data.table::fread("https://cloud.minsa.gob.pe/s/ZgXoXqK2KLjRLxD/download")
+# Carga de Data
+positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
+fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";")
+vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
 
-#Descarga y descomprime data vacunacion
-temp <- tempfile()
-curl_download("https://cloud.minsa.gob.pe/s/To2QtqoNjKqobfw/download",temp)
-vacunacion <- data.table::fread(unz(temp, "vacunas_covid.7z"))
-unlink(temp)
-
-positivos <-
-  data.table::fread("https://cloud.minsa.gob.pe/s/Y8w3wHsEdYQSZRp/download")
-
-fallecidos <-
-  data.table::fread("https://cloud.minsa.gob.pe/s/Md37cjXmjT9qYSa/download")
-
-# Creación db general
-db <- list(positivos,
-           fallecidos,
-           vacunacion) %>%
-  set_names("positivos",
-            "fallecidos",
-            "vacunacion")
-
+db <- list(positivos, fallecidos, vacunacion)
+names(db) <- c("positivos", "fallecidos", "vacunacion")
 rm(positivos, fallecidos, vacunacion)
+gc()
 
+# Limpieza data ----------------------------------------------------------------
 
-# LimpiezVja data ----------------------------------------------------------------
+db <- modify(db, mutate_if, is.character, as.factor) # Convierte a factores
+gc()
 
-db <- db %>% 
-  modify(clean_names) %>%  #Limpia nombres de columnas
-  modify(as.character)
+db <- modify(db, clean_names) # Limpia nombres de variables
 
-db <- db %>%  
-  modify_in(c("positivos", "fecha_corte"), as.Date, format = "%Y%m%d", as.character) 
-
-%>% 
-  modify_in(c("positivos", "fecha_resultado"), as.Date.numeric, format = "%Y%m%d") 
-
-%>% 
-  modify_in(c("fallecidos", "fecha_corte"), as.Date.numeric, format = "%Y%m%d") %>% 
-  modify_in(c("fallecidos", "fecha_fallecimiento"), as.Date.numeric, format = "%Y%m%d") %>% 
-  modify_in(c("vacunacion", "fecha_corte"), as.Date.numeric, format = "%Y%m%d") %>% 
-  modify_in(c("vacunacion", "fecha_vacunacion"), as.Date.numeric, format = "%Y%m%d") 
-
-  modify_at(vars(contains("fecha")), as.character) %>% 
-  modify_at(vars(contains("fecha")), as.Date, format = "%Y%m%d" )
-
-db %>% 
-  modify_in("vacunacion", mutate_at, c("fecha_corte", "fecha_vacunacion"), as.character) %>% 
-  modify_at("vacunacion", mutate_at, c("fecha_corte", "fecha_vacunacion"), as.Date, format = "%Y%m%d" ) %>% 
-  modify_at("vacunaci")
-
-vacunacion <- vacunacion %>%
-  clean_names() %>%
-  mutate_at(c("fecha_corte", "fecha_vacunacion"), as.character) %>%
-  mutate_at(c("fecha_corte", "fecha_vacunacion"),
-            as.Date, format = "%Y%m%d") %>%
-  mutate_at(
-    c(
-      "departamento",
-      "provincia",
-      "distrito",
-      "sexo",
-      "diresa",
-      "fabricante"
-    ),
-    str_to_title
+db$positivos <- db$positivos %>%
+  mutate(
+    fecha_corte = fechaFix(fecha_corte),
+    uuid = as.character(uuid),
+    departamento = recode(departamento, "LIMA REGION" = "LIMA"),
+    #Junta Lima y Lima pronvincias
+    departamento = str_to_title(departamento),
+    provincia = str_to_title(provincia),
+    distrito = str_to_title(distrito),
+    sexo = str_to_sentence(sexo),
+    fecha_resultado = fechaFix(fecha_resultado),
   ) %>%
-  mutate(grupo_riesgo = grupo_riesgo %>% str_to_sentence) %>%
-  mutate_at(
-    c(
-      "grupo_riesgo",
-      "sexo",
-      "fabricante",
-      "diresa",
-      "departamento",
-      "provincia",
-      "distrito"
-    ),
-    as.factor
-  )
+  filter(!is.na(fecha_resultado)) # Elimina datos sin registro de fecha
 
-positivos <- positivos %>%
-  clean_names() %>%
-  mutate_at(c("fecha_corte", "fecha_resultado"), as.character) %>%
-  mutate_at(c("fecha_corte", "fecha_resultado"),
-            as.Date, format = "%Y%m%d") %>%
-  mutate_at(c("departamento", "provincia", "distrito", "sexo"), str_to_title) %>%
-  mutate_at(c("departamento", "provincia", "distrito", "metododx", "sexo"),
-            as.factor)
+db$fallecidos <- db$fallecidos %>%
+  mutate(
+    fecha_corte = fechaFix(fecha_corte),
+    uuid = as.character(uuid),
+    fecha_fallecimiento = fechaFix(fecha_fallecimiento),
+    edad_declarada = as.numeric(edad_declarada),
+    sexo = str_to_sentence(sexo),
+    departamento = str_to_title(departamento),
+    provincia = str_to_title(provincia),
+    distrito = str_to_title(distrito)
+  ) %>%
+  filter(!is.na(fecha_fallecimiento))
 
-fallecidos.df <- fallecidos.df %>%
-  clean_names() %>% 
-  mutate_at(c("'fecha_corte", "fecha_fallecimiento"), as.character) %>% 
-  mutate_at(c("fecha_corte", "fecha_fallecimiento"),
-            as.Date, format = "%Y%m%d")
+db$vacunacion <- db$vacunacion %>%
+  mutate(
+    fecha_corte = fechaFix(fecha_corte),
+    uuid = as.character(uuid),
+    grupo_riesgo = str_to_sentence(grupo_riesgo),
+    sexo = str_to_title(sexo),
+    fecha_vacunacion = fechaFix(fecha_vacunacion),
+    fabricante = str_to_title(fabricante),
+    diresa = str_to_title(diresa),
+    departamento = str_to_title(departamento),
+    provincia = str_to_title(provincia),
+    distrito = str_to_title(distrito)
+  ) %>%
+  filter(!is.na(fecha_vacunacion))
 
-sinadef <- sinadef %>% clean_names()
 
-# Guardando archivos------------------------------------------------------------
-saveRDS(db, file ="data/db.Rds")
+# Guardado data -----------------------------------------------------------
+
+write_feather(db$positivos, "data/positivos.feather")
+write_feather(db$fallecidos, "data/fallecidos.feather")
+write_feather(db$vacunacion, "data/vacunacion.feather")
