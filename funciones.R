@@ -1,13 +1,33 @@
 # Funciones
 
-fechaFix <- function(variable){
+descargar.datos <- function() {
+  # Descarga las últimas bases de datos abiertos
+  message("Descargando bases de datos...")
+  download.file(
+    "https://cloud.minsa.gob.pe/s/Y8w3wHsEdYQSZRp/download",
+    "data/positivos_covid.csv"
+  )
+  download.file(
+    "https://cloud.minsa.gob.pe/s/Md37cjXmjT9qYSa/download",
+    "data/fallecidos_covid.csv"
+  )
+  download.file(
+    "https://cloud.minsa.gob.pe/s/To2QtqoNjKqobfw/download",
+    "data/vacunas_covid.7z"
+  )
+  uzp("data/vacunas_covid.7z", "data/vacunas_covid.csv")
+  message("Bases de datos descargadas")
+}
+
+fechaFix <- function(variable) {
   # Convierte clase de variable de números a fecha
-    variable %>%
-        as.character() %>% 
-        as.Date(format = "%Y%m%d")
+  variable %>%
+    as.character() %>%
+    as.Date(format = "%Y%m%d")
 }
 
 plot.diarios <- function(DataFrame, x, y) {
+  # Gráfico de casos diarios
   ggplot(DataFrame, aes({{x}} , {{y}})) +
     geom_col() +
     theme_minimal() +
