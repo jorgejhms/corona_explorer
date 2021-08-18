@@ -38,10 +38,29 @@ plot.diarios <- function(DataFrame, x, y) {
     geom_line(aes(y = zoo::rollmean({{y}}, 7, fill = NA)),
               size = 1.2,
               colour = "red1") +
-    scale_x_date(date_labels = "%b",
-                 breaks = "1 month",
-                 minor_breaks = NULL) +
+    scale_x_date(
+      labels = scales::label_date_short(),
+      breaks = scales::breaks_width("1 months")
+    ) +
+    scale_y_continuous(labels = scales::comma_format(big.mark = " ")) +
     theme(legend.position = "none",
+          legend.title = element_blank()) +
+    labs(x = element_blank(),
+         y = element_blank(),
+         title = element_blank())
+}
+
+
+plot.vacunaciones <- function(DataFrame, x, y, group) {
+  # Grafico de vacunaciones por tipo
+  ggplot(DataFrame, aes({{x}}, {{y}}, color = {{group}})) +
+    theme_minimal() +
+    geom_line(size = 1) +
+    scale_y_continuous(labels = scales::comma_format(big.mark = " ")) +
+    scale_x_date(
+      labels = scales::label_date_short(),
+      breaks = scales::breaks_width("1 months"))+
+    theme(legend.position = "right",
           legend.title = element_blank()) +
     labs(x = element_blank(),
          y = element_blank(),

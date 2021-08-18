@@ -37,27 +37,27 @@ total_positivos <- sum(positivos$n)
 total_fallecidos <- sum(fallecidos$n)
 total_vacunas <- sum(vacunacion$n)
 
-tabla_dosis <- vacunacion %>% 
-  group_by(dosis) %>% 
+
+# Generación de tablas ----------------------------------------------------
+
+# Numero de positivos por día
+tabla_positivos <- positivos %>% 
+  group_by(fecha_resultado) %>% 
   summarise(n = sum(n))
 
-# Gráficos ----------------------------------------------------------------
-
-# Gráfica de positivos diarios
-positivos %>% 
-  group_by(fecha_resultado) %>% 
-  summarise(n = sum(n)) %>% 
-  plot.diarios(fecha_resultado, n)
-
-# Gráfica de fallecidos diarios
-fallecidos %>% 
+# Número de fallecidos por día
+tabla_fallecidos <- fallecidos %>% 
   group_by(fecha_fallecimiento) %>% 
+  summarise(n = sum(n))
+
+# Total de vacunaciones según dosis
+tabla_dosis <- vacunacion %>% 
+  group_by(dosis) %>% 
   summarise(n = sum(n)) %>% 
-  plot.diarios(fecha_fallecimiento, n)
+  adorn_totals()
 
-
-# Grafica de vacunaciones acumuladas
-vacunacion %>%
+# Tabla de vacunaciones por día, dosis y acumuladas
+tabla_vacunaciones <- vacunacion %>%
   pivot_wider(
     id_cols = fecha_vacunacion,
     values_from = n,
@@ -74,13 +74,19 @@ vacunacion %>%
     total_cum = cumsum(total)
   ) %>%
   pivot_longer(cols = -fecha_vacunacion) %>%
-  filter(str_detect(name, "cum")) %>%
-  ggplot(aes(fecha_vacunacion, value, color = name)) +
-  theme_minimal() +
-  geom_line()
+  filter(str_detect(name, "cum"))
 
-# Primera dosis
-vacunacion %>% 
-  select(fecha_vacunacion, dosis, n) %>% 
-  ggplot(aes(fecha_vacunacion, n, group = dosis, color = dosis)) +
+# Gráficos ----------------------------------------------------------------
 
+# Gráfica de positivos diarios
+plot.diarios(tabla_positivos, fecha_resultado, n) +
+  labs(title = "Casos diarios detectados")
+
+# Gráfica de fallecidos diarios
+plot.diarios(tabla_fallecidos, fecha_fallecimiento, n) +
+  labs(title = "Fallecimientos diarios")
+
+# Grafica de vacunaciones acumuladas
+plot.vacunaciones(tabla_vacunaciones, fecha_vacunacion, value, name) +
+  labs(title = "Progreso de las vacunaciones") +
+  scale_color_discrete(labels = c("Primera dosis", "Segunda dosis", "Total"))
