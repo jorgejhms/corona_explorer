@@ -13,6 +13,7 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(plotly)
 
 # aumento memoría
 memory.limit(size = 250000) # Solo windows
@@ -79,14 +80,20 @@ tabla_vacunaciones <- vacunacion %>%
 # Gráficos ----------------------------------------------------------------
 
 # Gráfica de positivos diarios
-plot.diarios(tabla_positivos, fecha_resultado, n) +
+graph_positivos <- plot.diarios(tabla_positivos, fecha_resultado, n) +
   labs(title = "Casos diarios detectados")
 
+plotly::ggplotly(graph_positivos)
+
 # Gráfica de fallecidos diarios
-plot.diarios(tabla_fallecidos, fecha_fallecimiento, n) +
+graph_fallecidos <- plot.diarios(tabla_fallecidos, fecha_fallecimiento, n) +
   labs(title = "Fallecimientos diarios")
 
+plotly::ggplotly(graph_fallecidos)
+
 # Grafica de vacunaciones acumuladas
-plot.vacunaciones(tabla_vacunaciones, fecha_vacunacion, value, name) +
+graph_vacunacion <- plot.vacunaciones(tabla_vacunaciones, fecha_vacunacion, value, name) +
   labs(title = "Progreso de las vacunaciones") +
   scale_color_discrete(labels = c("Primera dosis", "Segunda dosis", "Total"))
+
+plotly::ggplotly(graph_vacunacion)
