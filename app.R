@@ -112,25 +112,66 @@ sidebar <- dashboardSidebar(
 # Body --------------------------------------------------------------------
 
 body <- dashboardBody(
+    
+    # Primera fila
     fluidRow(
+        
         infoBox(
             "Fecha de actualización",
-            123456679,
+            fecha_actualizacion,
+            color = "blue",
+            width = 4,
+            icon = icon("calendar-alt")
+        ),
+        
+        infoBox(
+            "Total de positivos",
+            prettyNum(total_positivos, big.mark = " "),
+            color = "yellow",
+            width = 4,
+            icon = icon("virus")
+        ),
+        
+        infoBox(
+            "Total de fallecidos",
+            prettyNum(total_fallecidos, big.mark = " "),
             color = "red",
-            fill = TRUE,
-            icon = icon("credit-card")
+            width = 4,
+            icon = icon("skull-crossbones")
         )
     ),
-    # Valores a mostrar
     
+    # Segunda fila
+    fluidRow(
+        
+        infoBox(
+            "Total de Vacunas aplicadas",
+            prettyNum(lista_dosis[[3]], big.mark = " "),
+            color = "green",
+            width = 4,
+            fill = TRUE,
+            icon = icon("syringe")
+        ),
+        
+        infoBox(
+            "Primera dosis",
+            prettyNum(lista_dosis[[1]], big.mark = " "),
+            color = "lime",
+            width = 4,
+            icon = icon("syringe")
+        ),
+        
+        infoBox(
+            "Segunda dosis",
+            prettyNum(lista_dosis[[2]], big.mark = " "),
+            color = "green",
+            width = 4,
+            icon = icon("syringe")
+        )
+        
+    ),
     
-    # infoBoxOutput("fecha_actualizacion"),
-    textOutput("fecha_actualizacion"),
-    textOutput("total_positivos"),
-    textOutput("total_fallecidos"),
-    textOutput("total_vacunas"),
-    textOutput("total_primera_dosis"),
-    textOutput("total_segunda_dosis"),
+
     textOutput("positivos_dia"),
     textOutput("fallecidos_dia"),
     textOutput("vacunados_dia"),
@@ -138,11 +179,33 @@ body <- dashboardBody(
     textOutput("segunda_dosis_dia"),
     
     # Gráficos
-    box(plotOutput("grafico_positivos")),
     
-    box(plotOutput("grafico_fallecidos")),
-    
-    box(plotOutput("grafico_vacunaciones"))
+    fluidRow(
+        column(width = 8,
+               
+               box(
+                   title = "Positivos diario",
+                   width = NULL,
+                   status = "warning",
+                   plotOutput("grafico_positivos")
+                   ),
+               
+               box(
+                   title = "Fallecidos diario",
+                   width = NULL,
+                   status = "warning",
+                   plotOutput("grafico_fallecidos")
+                   ),
+               
+               box(
+                   title = "Vacunaciones por día",
+                   width = NULL,
+                   status = "success",
+                   plotOutput("grafico_vacunaciones")
+                   )
+               )
+    )
+
 )
 
 # Frontend ----------------------------------------------------------------
