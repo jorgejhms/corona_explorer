@@ -10,6 +10,7 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(shinydashboard)
 
 # aumento memoría
 memory.limit(size = 250000) # Solo windows
@@ -74,58 +75,80 @@ tabla_vacunaciones <- vacunacion %>%
     pivot_longer(cols = -fecha_vacunacion) %>%
     filter(str_detect(name, "cum"))
 
+
+# Header ------------------------------------------------------------------
+
+header <- dashboardHeader(
+    title = "Corona Explorer"
+)
+
+
+# Sidebar -----------------------------------------------------------------
+
+sidebar <- dashboardSidebar(
+    #Inputs
+    dateRangeInput(
+        # Selector de fechas
+        inputId = "fecha",
+        label = "Fechas",
+        start = min(positivos$fecha_resultado),
+        end = fecha_actualizacion,
+        min = min(positivos$fecha_resultado),
+        max = fecha_actualizacion
+    ),
+    
+    selectInput(
+        # Selector de Región
+        inputId = "departamento",
+        label = "Escoge tu región:",
+        choices = c("Todos",
+                    as.character(unique(
+                        positivos$departamento
+                    ))),
+        selected = "Todos"
+    )
+)
+
+# Body --------------------------------------------------------------------
+
+body <- dashboardBody(
+    fluidRow(
+        infoBox(
+            "Fecha de actualización",
+            123456679,
+            color = "red",
+            fill = TRUE,
+            icon = icon("credit-card")
+        )
+    ),
+    # Valores a mostrar
+    
+    
+    # infoBoxOutput("fecha_actualizacion"),
+    textOutput("fecha_actualizacion"),
+    textOutput("total_positivos"),
+    textOutput("total_fallecidos"),
+    textOutput("total_vacunas"),
+    textOutput("total_primera_dosis"),
+    textOutput("total_segunda_dosis"),
+    textOutput("positivos_dia"),
+    textOutput("fallecidos_dia"),
+    textOutput("vacunados_dia"),
+    textOutput("primera_dosis_dia"),
+    textOutput("segunda_dosis_dia"),
+    
+    # Gráficos
+    box(plotOutput("grafico_positivos")),
+    
+    box(plotOutput("grafico_fallecidos")),
+    
+    box(plotOutput("grafico_vacunaciones"))
+)
+
 # Frontend ----------------------------------------------------------------
 
-ui <- fluidPage(# Application title
-    titlePanel("Corona Explorer"),
-    
-    sidebarLayout(
-        
-        # Controles Barra lateral
-        sidebarPanel(
-            #Inputs
-            dateRangeInput(
-                # Selector de fechas
-                inputId = "fecha",
-                label = "Fechas",
-                start = min(positivos$fecha_resultado),
-                end = fecha_actualizacion,
-                min = min(positivos$fecha_resultado),
-                max = fecha_actualizacion
-            ),
-            
-            selectInput(
-                # Selector de Región
-                inputId = "departamento",
-                label = "Escoge tu región:",
-                choices = c("Todos", 
-                            as.character(unique(positivos$departamento))
-                            ),
-                selected = "Todos"
-            ), 
-        ),
-        
-        mainPanel(
-            # Valores a mostrar
-            textOutput("fecha_actualizacion"),
-            textOutput("total_positivos"),
-            textOutput("total_fallecidos"),
-            textOutput("total_vacunas"),
-            textOutput("total_primera_dosis"),
-            textOutput("total_segunda_dosis"),
-            textOutput("positivos_dia"),
-            textOutput("fallecidos_dia"),
-            textOutput("vacunados_dia"),
-            textOutput("primera_dosis_dia"),
-            textOutput("segunda_dosis_dia"),
-            
-            # Gráficos
-            plotOutput("grafico_positivos"),
-            plotOutput("grafico_fallecidos"),
-            plotOutput("grafico_vacunaciones"),
-            
-        )
-    ))
+ui <- dashboardPage(header, sidebar, body)
+
 
 # Backend -----------------------------------------------------------------
 
@@ -161,10 +184,6 @@ server <- function(input, output) {
     
     
     # Calculo de valores
-    
-    output$fecha_actualizacion <- renderText({
-        as.character(fecha_actualizacion)
-    })
     
     output$total_positivos <- renderText({
         as.character(total_positivos)

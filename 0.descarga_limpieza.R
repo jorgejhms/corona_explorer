@@ -10,8 +10,10 @@ library(fst)
 # Importación datos ------------------------------------------------------------
 
 # Carga de Data
-positivos <- data.table::fread("data/positivos_covid.csv", sep = ";")
-fallecidos <- data.table::fread("data/fallecidos_covid.csv", sep = ";")
+positivos <-
+  data.table::fread("data/positivos_covid.csv", sep = ";")
+fallecidos <-
+  data.table::fread("data/fallecidos_covid.csv", sep = ";")
 vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
 
 # Funciones
@@ -20,7 +22,7 @@ source("funciones.R")
 # Limpieza data ----------------------------------------------------------------
 
 positivos <- positivos %>%
-  clean_names() %>% 
+  clean_names() %>%
   mutate(
     fecha_corte = fechaFix(fecha_corte),
     uuid = as.character(uuid),
@@ -35,10 +37,15 @@ positivos <- positivos %>%
   filter(!is.na(fecha_resultado)) # Elimina datos sin registro de fecha
 
 fallecidos <- fallecidos %>%
-  clean_names() %>% 
+  clean_names() %>%
   mutate(
     fecha_corte = fechaFix(fecha_corte),
     uuid = as.character(uuid),
+    departamento = recode(
+      departamento,
+      "LIMA REGION" = "LIMA",
+      "LIMA METROPOLITANA" = "LIMA"
+    ),
     fecha_fallecimiento = fechaFix(fecha_fallecimiento),
     edad_declarada = as.numeric(edad_declarada),
     sexo = str_to_sentence(sexo),
@@ -49,7 +56,7 @@ fallecidos <- fallecidos %>%
   filter(!is.na(fecha_fallecimiento))
 
 vacunacion <- vacunacion %>%
-  clean_names() %>% 
+  clean_names() %>%
   mutate(
     fecha_corte = fechaFix(fecha_corte),
     uuid = as.character(uuid),
@@ -66,14 +73,28 @@ vacunacion <- vacunacion %>%
 
 # Transformación por distrito ---------------------------------------------
 
-positivos <- positivos %>% 
-  count(departamento, provincia, distrito, fecha_resultado, metododx, sexo)
+positivos <- positivos %>%
+  count(departamento,
+        provincia,
+        distrito,
+        fecha_resultado,
+        metododx,
+        sexo)
 
-fallecidos <- fallecidos %>% 
+fallecidos <- fallecidos %>%
   count(departamento, provincia, distrito, fecha_fallecimiento, sexo)
 
-vacunacion <- vacunacion %>% 
-  count(departamento, provincia, distrito, sexo, fecha_vacunacion, fabricante, dosis, grupo_riesgo)
+vacunacion <- vacunacion %>%
+  count(
+    departamento,
+    provincia,
+    distrito,
+    sexo,
+    fecha_vacunacion,
+    fabricante,
+    dosis,
+    grupo_riesgo
+  )
 
 # Guardado data -----------------------------------------------------------
 
