@@ -66,3 +66,43 @@ plot.vacunaciones <- function(DataFrame, x, y, group) {
          y = element_blank(),
          title = element_blank())
 }
+
+filtra_zona <- function(DataFrame, i_departamento, i_provincia, i_distrito) {
+  # Filtra la base de datos otorgada según los datos ingresados en el input
+  if (i_departamento != "Todos" &
+      i_provincia != "Todos" &
+      i_distrito != "Todos") {
+    DataFrame <- DataFrame %>%
+      filter(departamento == i_departamento) %>%
+      filter(provincia == i_provincia) %>%
+      filter(distrito == i_distrito)
+    
+  } else if (i_departamento != "Todos" &
+             i_provincia != "Todos") {
+    DataFrame <- DataFrame %>%
+      filter(departamento == i_departamento) %>%
+      filter(provincia == i_provincia)
+    
+  } else  if (i_departamento != "Todos") {
+    DataFrame <- DataFrame %>%
+      filter(departamento == i_departamento)
+    
+  } else {
+    DataFrame <- DataFrame
+  }
+}
+
+sum_casos <- function(DataFrame) {
+  # Suma los casos del df otorgado
+  DataFrame %>% 
+    summarize(n = sum(n)) %>% 
+    pull() %>% 
+    as.character() %>% 
+    prettyNum(big.mark = " ")
+}
+
+filtra_fechas <- function(DataFrame, fecha, fecha_inicio, fecha_fin){
+  # Filtra DF según las fechas dadas
+  DataFrame %>% 
+    filter( {{fecha}} >= fecha_inicio & {{fecha}} <= fecha_fin)
+}

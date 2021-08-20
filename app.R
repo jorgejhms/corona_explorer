@@ -43,18 +43,6 @@ lista_dosis <- vacunacion %>%
     adorn_totals() %>%
     deframe()
 
-# Numero de positivos por día
-# tabla_positivos <- positivos %>% 
-#     group_by(fecha_resultado) %>% 
-#     summarise(n = sum(n))
-
-# Número de fallecidos por día
-# tabla_fallecidos <- fallecidos %>% 
-#     group_by(fecha_fallecimiento) %>% 
-#     summarise(n = sum(n))
-
-
-
 # Tabla de vacunaciones por día, dosis y acumuladas
 tabla_vacunaciones <- vacunacion %>%
     pivot_wider(
@@ -82,7 +70,6 @@ header <- dashboardHeader(
     title = "Corona Explorer"
 )
 
-
 # Sidebar -----------------------------------------------------------------
 
 sidebar <- dashboardSidebar(
@@ -91,31 +78,46 @@ sidebar <- dashboardSidebar(
         # Selector de fechas
         inputId = "fecha",
         label = "Fechas",
-        start = min(positivos$fecha_resultado),
+        # start = min(positivos$fecha_resultado),
+        start = today() - 90,
         end = fecha_actualizacion,
         min = min(positivos$fecha_resultado),
         max = fecha_actualizacion
     ),
-    
+
     selectInput(
         # Selector de Región
         inputId = "departamento",
         label = "Escoge tu región:",
         choices = c("Todos",
-                    as.character(unique(
-                        positivos$departamento
-                    ))),
+                    as.character(
+                        unique(positivos$departamento)
+                    )),
         selected = "Todos"
+    ),
+
+    selectInput(
+        # Selector de Provincia
+        inputId = "provincia",
+        label = "Provincia:",
+        choices = NULL,
+    ),
+
+    selectInput(
+        # Selector de Distrito
+        inputId = "distrito",
+        label = "Distrito:",
+        choices = NULL
     )
 )
-
+ 
 # Body --------------------------------------------------------------------
 
 body <- dashboardBody(
-    
+
     # Primera fila
     fluidRow(
-        
+
         infoBox(
             "Fecha de actualización",
             fecha_actualizacion,
@@ -123,7 +125,7 @@ body <- dashboardBody(
             width = 4,
             icon = icon("calendar-alt")
         ),
-        
+
         infoBox(
             "Total de positivos",
             prettyNum(total_positivos, big.mark = " "),
@@ -131,7 +133,7 @@ body <- dashboardBody(
             width = 4,
             icon = icon("virus")
         ),
-        
+
         infoBox(
             "Total de fallecidos",
             prettyNum(total_fallecidos, big.mark = " "),
@@ -140,10 +142,10 @@ body <- dashboardBody(
             icon = icon("skull-crossbones")
         )
     ),
-    
+
     # Segunda fila
     fluidRow(
-        
+
         infoBox(
             "Total de Vacunas aplicadas",
             prettyNum(lista_dosis[[3]], big.mark = " "),
@@ -152,7 +154,7 @@ body <- dashboardBody(
             fill = TRUE,
             icon = icon("syringe")
         ),
-        
+
         infoBox(
             "Primera dosis",
             prettyNum(lista_dosis[[1]], big.mark = " "),
@@ -160,7 +162,7 @@ body <- dashboardBody(
             width = 4,
             icon = icon("syringe")
         ),
-        
+
         infoBox(
             "Segunda dosis",
             prettyNum(lista_dosis[[2]], big.mark = " "),
@@ -168,41 +170,47 @@ body <- dashboardBody(
             width = 4,
             icon = icon("syringe")
         )
-        
+
     ),
-    
+
 
     textOutput("positivos_dia"),
     textOutput("fallecidos_dia"),
     textOutput("vacunados_dia"),
     textOutput("primera_dosis_dia"),
     textOutput("segunda_dosis_dia"),
-    
+
     # Gráficos
-    
+
     fluidRow(
         column(width = 8,
-               
+
                box(
                    title = "Positivos diario",
                    width = NULL,
                    status = "warning",
                    plotOutput("grafico_positivos")
                    ),
-               
+
                box(
                    title = "Fallecidos diario",
                    width = NULL,
                    status = "warning",
                    plotOutput("grafico_fallecidos")
                    ),
-               
+
                box(
                    title = "Vacunaciones por día",
                    width = NULL,
                    status = "success",
                    plotOutput("grafico_vacunaciones")
                    )
+               ),
+        
+        column(width = 4,
+               infoBoxOutput("positivos_zona", width = NULL),
+               infoBoxOutput("fallecidos_zona", width = NULL),
+               infoBoxOutput("vacunaciones_zona", width = NULL)
                )
     )
 
@@ -212,62 +220,88 @@ body <- dashboardBody(
 
 ui <- dashboardPage(header, sidebar, body)
 
-
 # Backend -----------------------------------------------------------------
 
-server <- function(input, output) {
-    
-    # Filtros de regiones
+server <- function(input, output, session) {
+
+    # Actualización del selector
+    observe({
+        updateSelectInput(
+            session,
+            "provincia",
+            choices = c(
+                "Todos",
+                positivos %>%
+                    filter(departamento == input$departamento) %>%
+                    pull(provincia) %>%
+                    unique()
+            ),
+            selected = "Todos"
+        )
+    })
+
+    observe({
+        updateSelectInput(
+            session,
+            "distrito",
+            choices = c(
+                "Todos",
+                positivos %>%
+                    filter(provincia == input$provincia) %>%
+                    pull(distrito) %>%
+                    unique()
+            ),
+            selected = "Todos"
+        )
+    })
+
+    # Filtros de regiones (Casos positivos)
     positivos_filtrada <- reactive({
-        if (input$departamento != "Todos") {
-            positivos <- positivos %>%
-                filter(departamento == input$departamento)
-        } else {
-            positivos <- positivos
-        }
+        filtra_zona(positivos,
+                    input$departamento,
+                    input$provincia,
+                    input$distrito)
     })
-    
+
+    # Filtros de regiones (Casos fallecidos)
     fallecidos_filtrada <- reactive({
-        if (input$departamento != "Todos") {
-            fallecidos <- fallecidos %>%
-                filter(departamento == input$departamento)
-        } else {
-            fallecidos <- fallecidos
-        }
+        filtra_zona(fallecidos,
+                    input$departamento,
+                    input$provincia,
+                    input$distrito)
     })
-    
+
+    # Filtro de zona (Vacunaciones)
     vacunacion_filtrada <- reactive({
-        if (input$departamento != "Todos") {
-            vacunacion <- vacunacion %>%
-                filter(departamento == input$departamento)
-        } else {
-            vacunacion <- vacunacion
-        }
+        filtra_zona(vacunacion,
+                    input$departamento,
+                    input$provincia,
+                    input$distrito)
     })
-    
-    
+
+
     # Calculo de valores
-    
+
     output$total_positivos <- renderText({
         as.character(total_positivos)
     })
-    
+
     output$total_fallecidos <- renderText({
         as.character(total_fallecidos)
     })
-    
+
     output$total_vacunas <- renderText({
         as.character(total_vacunas)
     })
-    
+
     output$total_primera_dosis <- renderText({
         as.character(lista_dosis[[1]])
     })
-    
+
     output$total_segunda_dosis <- renderText({
         as.character(lista_dosis[[2]])
     })
-    
+
     output$positivos_dia <-
         renderText({
             positivos %>%
@@ -275,9 +309,9 @@ server <- function(input, output) {
                 summarise(n = sum(n)) %>%
                 filter (fecha_resultado == fecha_actualizacion) %>%
                 pull()
-            
+
         })
-    
+
     output$fallecidos_dia <-
         renderText({
             fallecidos %>%
@@ -287,8 +321,53 @@ server <- function(input, output) {
                 pull()
         })
     
-    # Gráficos
+    # Valores de la zona filtrada
+    output$positivos_zona <- renderInfoBox({
+        infoBox(
+            "Positivos en la zona",
+            positivos_filtrada() %>% 
+                filtra_fechas(
+                    fecha_resultado,
+                    input$fecha[1],
+                    input$fecha[2]
+                    ) %>% 
+                sum_casos(),
+            fill = TRUE
+        )
+    })
     
+   output$fallecidos_zona <- renderInfoBox({
+       infoBox(
+           "Fallecidos en la zona",
+           fallecidos_filtrada() %>% 
+               filtra_fechas(fecha_fallecimiento,
+                             input$fecha[1],
+                             input$fecha[2]
+                             ) %>% 
+               sum_casos(),
+           # sum_casos(fallecidos_filtrada()),
+           fill = TRUE,
+           color = "red"
+       )
+   })
+   
+   output$vacunaciones_zona <- renderInfoBox({
+       infoBox(
+           "Vacunados en la zona",
+           vacunacion_filtrada() %>% 
+               filtra_fechas(fecha_vacunacion,
+                             input$fecha[1],
+                             input$fecha[2]
+                            ) %>% 
+               sum_casos(),
+           # sum_casos(vacunacion_filtrada()),
+           fill = TRUE,
+           color = "green"
+       )
+   })
+
+    # Gráficos
+
     output$grafico_positivos <- renderPlot({
         # Gráfica positivos diarios
         positivos_filtrada() %>%
@@ -299,8 +378,8 @@ server <- function(input, output) {
                        fecha_resultado <= input$fecha[2]) %>%
             plot.diarios(fecha_resultado, n)
     })
-    
-    
+
+
     output$grafico_fallecidos <- renderPlot({
         # Gráfica fallecidos diarios
         fallecidos_filtrada() %>%
@@ -311,10 +390,12 @@ server <- function(input, output) {
                        fecha_fallecimiento <= input$fecha[2]) %>%
             plot.diarios(fecha_fallecimiento, n)
     })
-    
+
     output$grafico_vacunaciones <- renderPlot({
         # Grafica de vacunaciones
         vacunacion_filtrada() %>%
+            filter(fecha_vacunacion >= input$fecha[1] &
+                       fecha_vacunacion <= input$fecha[2]) %>%
             pivot_wider(
                 id_cols = fecha_vacunacion,
                 values_from = n,
@@ -337,8 +418,8 @@ server <- function(input, output) {
             scale_color_discrete(
                 labels = c("Primera dosis", "Segunda dosis", "Total"))
     })
-    
-    
+
+
 }
 
 # Run the application
