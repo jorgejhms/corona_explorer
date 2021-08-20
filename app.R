@@ -102,10 +102,24 @@ sidebar <- dashboardSidebar(
         inputId = "departamento",
         label = "Escoge tu región:",
         choices = c("Todos",
-                    as.character(unique(
-                        positivos$departamento
-                    ))),
+                    as.character(
+                        unique(positivos$departamento)
+                    )),
         selected = "Todos"
+    ),
+    
+    selectInput(
+        # Selector de Provincia
+        inputId = "provincia",
+        label = "Provincia:",
+        choices = NULL,
+    ),
+    
+    selectInput(
+        # Selector de Distrito
+        inputId = "distrito",
+        label = "Distrito:",
+        choices = NULL
     )
 )
 
@@ -215,13 +229,43 @@ ui <- dashboardPage(header, sidebar, body)
 
 # Backend -----------------------------------------------------------------
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+    
+    # Actualización del seletor
+    observe({
+        updateSelectInput(
+            session,
+            "provincia",
+            choices =
+                positivos %>%
+                filter(departamento == input$departamento) %>%
+                pull(provincia) %>%
+                unique()
+        )
+        
+        
+    })
+    
+    observe({
+        updateSelectInput(
+            session,
+            "distrito",
+            choices = positivos %>%
+                filter(provincia == input$provincia) %>%
+                pull(distrito) %>%
+                unique()
+        )
+    })
+    
+    
     
     # Filtros de regiones
     positivos_filtrada <- reactive({
         if (input$departamento != "Todos") {
             positivos <- positivos %>%
-                filter(departamento == input$departamento)
+                filter(departamento == input$departamento) %>% 
+                filter(provincia == input$provincia) %>% 
+                filter(distrito == input$distrito)
         } else {
             positivos <- positivos
         }
@@ -230,7 +274,9 @@ server <- function(input, output) {
     fallecidos_filtrada <- reactive({
         if (input$departamento != "Todos") {
             fallecidos <- fallecidos %>%
-                filter(departamento == input$departamento)
+                filter(departamento == input$departamento) %>% 
+                filter(provincia == input$provincia) %>% 
+                filter(distrito == input$distrito)
         } else {
             fallecidos <- fallecidos
         }
@@ -239,7 +285,9 @@ server <- function(input, output) {
     vacunacion_filtrada <- reactive({
         if (input$departamento != "Todos") {
             vacunacion <- vacunacion %>%
-                filter(departamento == input$departamento)
+                filter(departamento == input$departamento) %>% 
+                filter(provincia == input$provincia) %>% 
+                filter(distrito == input$distrito)
         } else {
             vacunacion <- vacunacion
         }
