@@ -91,3 +91,18 @@ filtra_zona <- function(DataFrame, i_departamento, i_provincia, i_distrito) {
     DataFrame <- DataFrame
   }
 }
+
+sum_casos <- function(DataFrame) {
+  # Suma los casos del df otorgado
+  DataFrame %>% 
+    summarize(n = sum(n)) %>% 
+    pull() %>% 
+    as.character() %>% 
+    prettyNum(big.mark = " ")
+}
+
+filtra_fechas <- function(DataFrame, fecha, fecha_inicio, fecha_fin){
+  # Filtra DF según las fechas dadas
+  DataFrame %>% 
+    filter( {{fecha}} >= fecha_inicio & {{fecha}} <= fecha_fin)
+}

@@ -208,16 +208,9 @@ body <- dashboardBody(
                ),
         
         column(width = 4,
-               
-               infoBoxOutput("positivos_filtrado", width = NULL)
-               # textOutput("positivos_filtrado")
-               # infoBox(
-               #   "Positivos",
-               #   "positivos_filtrado",
-               #   # prettyNum(positivos_filtrado, big.mark = " "),
-               #   width = NULL,
-               #   fill = TRUE
-               # )
+               infoBoxOutput("positivos_zona", width = NULL),
+               infoBoxOutput("fallecidos_zona", width = NULL),
+               infoBoxOutput("vacunaciones_zona", width = NULL)
                )
     )
 
@@ -329,25 +322,49 @@ server <- function(input, output, session) {
         })
     
     # Valores de la zona filtrada
-    output$positivos_filtrado <- renderInfoBox({
+    output$positivos_zona <- renderInfoBox({
         infoBox(
             "Positivos en la zona",
             positivos_filtrada() %>% 
-                summarize(n = sum(n)) %>% 
-                pull() %>% 
-                as.character(),
-            # width = 4,
+                filtra_fechas(
+                    fecha_resultado,
+                    input$fecha[1],
+                    input$fecha[2]
+                    ) %>% 
+                sum_casos(),
             fill = TRUE
         )
     })
     
-    # output$positivos_filtrado <- renderText({
-    #     positivos_filtrada() %>% 
-    #         summarize(n = sum(n)) %>% 
-    #         pull() %>% 
-    #         as.character()
-    # })
-    
+   output$fallecidos_zona <- renderInfoBox({
+       infoBox(
+           "Fallecidos en la zona",
+           fallecidos_filtrada() %>% 
+               filtra_fechas(fecha_fallecimiento,
+                             input$fecha[1],
+                             input$fecha[2]
+                             ) %>% 
+               sum_casos(),
+           # sum_casos(fallecidos_filtrada()),
+           fill = TRUE,
+           color = "red"
+       )
+   })
+   
+   output$vacunaciones_zona <- renderInfoBox({
+       infoBox(
+           "Vacunados en la zona",
+           vacunacion_filtrada() %>% 
+               filtra_fechas(fecha_vacunacion,
+                             input$fecha[1],
+                             input$fecha[2]
+                            ) %>% 
+               sum_casos(),
+           # sum_casos(vacunacion_filtrada()),
+           fill = TRUE,
+           color = "green"
+       )
+   })
 
     # Gráficos
 
