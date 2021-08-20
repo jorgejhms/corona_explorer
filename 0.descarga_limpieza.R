@@ -9,12 +9,16 @@ library(fst)
 
 # Importación datos ------------------------------------------------------------
 
+### curl::curl_download("https://cloud.minsa.gob.pe/s/Jwck8Z59snYAK8S/download","TB_POBLACION_INEI.csv", quiet = FALSE)
+### de aquí se bajo la data de población
+
 # Carga de Data
 positivos <-
   data.table::fread("data/positivos_covid.csv", sep = ";")
 fallecidos <-
   data.table::fread("data/fallecidos_covid.csv", sep = ";")
 vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
+poblacion_inei <- data.table::fread("data/TB_POBLACION_INEI.csv") 
 
 # Funciones
 source("funciones.R")
@@ -71,6 +75,13 @@ vacunacion <- vacunacion %>%
   ) %>%
   filter(!is.na(fecha_vacunacion))
 
+poblacion_inei <- poblacion_inei %>%
+  clean_names() %>%
+  mutate(
+    departamento = str_to_title(departamento),
+    provincia = str_to_title(provincia),
+    distrito = str_to_title(distrito))
+
 # Transformación por distrito ---------------------------------------------
 
 positivos <- positivos %>%
@@ -101,3 +112,4 @@ vacunacion <- vacunacion %>%
 write_fst(positivos, "data/positivos.fst")
 write_fst(fallecidos, "data/fallecidos.fst")
 write_fst(vacunacion, "data/vacunacion.fst")
+write_fst(poblacion_inei, "data/poblacion_inei.fst")

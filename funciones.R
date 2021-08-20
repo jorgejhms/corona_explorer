@@ -101,6 +101,14 @@ sum_casos <- function(DataFrame) {
     prettyNum(big.mark = " ")
 }
 
+
+suma_poblacion <- function(DataFrame) {
+  DataFrame <- DataFrame %>% 
+    group_by(departamento, provincia, distrito) %>%
+    summarise(n = sum(cantidad))
+}
+
+
 filtra_fechas <- function(DataFrame, fecha, fecha_inicio, fecha_fin){
   # Filtra DF según las fechas dadas
   DataFrame %>% 
