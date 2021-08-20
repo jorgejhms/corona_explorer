@@ -91,7 +91,8 @@ sidebar <- dashboardSidebar(
         # Selector de fechas
         inputId = "fecha",
         label = "Fechas",
-        start = min(positivos$fecha_resultado),
+        # start = min(positivos$fecha_resultado),
+        start = today() - 90,
         end = fecha_actualizacion,
         min = min(positivos$fecha_resultado),
         max = fecha_actualizacion
@@ -271,20 +272,19 @@ server <- function(input, output, session) {
                 filter(departamento == input$departamento) %>%
                 filter(provincia == input$provincia) %>%
                 filter(distrito == input$distrito)
+            
+        } else if (input$departamento != "Todos" &
+                   input$provincia != "Todos") {
+            positivos <- positivos %>%
+                filter(departamento == input$departamento) %>%
+                filter(provincia == input$provincia)
+            
+        } else  if (input$departamento != "Todos") {
+            positivos <- positivos %>%
+                filter(departamento == input$departamento)
+            
         } else {
-            if (input$departamento != "Todos" &
-                input$provincia != "Todos") {
-                positivos <- positivos %>%
-                    filter(departamento == input$departamento) %>%
-                    filter(provincia == input$provincia)
-            } else {
-                if (input$departamento != "Todos") {
-                    positivos <- positivos %>%
-                        filter(departamento == input$departamento)
-                } else{
-                    positivos <- positivos
-                }
-            }
+            positivos <- positivos
         }
     })
     
@@ -297,21 +297,21 @@ server <- function(input, output, session) {
                 filter(departamento == input$departamento) %>%
                 filter(departamento == input$provincia) %>%
                 filter(distrito == input$distrito)
+            
+        } else if (input$departamento != "Todos" &
+                   input$provincia != "Todos") {
+            fallecidos <- fallecidos %>%
+                filter(departamento == input$departamento) %>%
+                filter(provincia == input$provincia)
+            
+        } else if (input$departamento != "Todos") {
+            fallecidos <- fallecidos %>%
+                filter(departamento == input$departamento)
+            
         } else {
-            if (input$departamento != "Todos" &
-                input$provincia != "Todos") {
-                fallecidos <- fallecidos %>%
-                    filter(departamento == input$departamento) %>%
-                    filter(provincia == input$provincia)
-            } else {
-                if (input$departamento != "Todos") {
-                    fallecidos <- fallecidos %>%
-                        filter(departamento == input$departamento)
-                } else {
-                    fallecidos <- fallecidos
-                }
-            }}
-        })
+            fallecidos <- fallecidos
+        }
+    })
     
     # Filtro de zona (Vacunaciones)
     vacunacion_filtrada <- reactive({
@@ -322,20 +322,18 @@ server <- function(input, output, session) {
                 filter(departamento == input$departamento) %>%
                 filter(provincia == input$provincia) %>%
                 filter(distrito == input$distrito)
+        } else if (input$departamento != "Todos" &
+                   input$provincia != "Todos") {
+            vacunacion <- vacunacion %>%
+                filter(departamento == input$departamento) %>%
+                filter(provincia == input$provincia)
+            
+        } else if (input$departamento != "Todos")  {
+            vacunacion <- vacunacion %>%
+                filter(departamento == input$departamento)
+            
         } else {
-            if (input$departamento != "Todos" &
-                input$provincia != "Todos") {
-                vacunacion <- vacunacion %>%
-                    filter(departamento == input$departamento) %>%
-                    filter(provincia == input$provincia)
-            } else {
-                if (input$departamento != "Todos") {
-                    vacunacion <- vacunacion %>%
-                        filter(departamento == input$departamento)
-                } else {
-                    vacunacion <- vacunacion
-                }
-            }
+            vacunacion <- vacunacion
         }
     })
     
@@ -409,6 +407,8 @@ server <- function(input, output, session) {
     output$grafico_vacunaciones <- renderPlot({
         # Grafica de vacunaciones
         vacunacion_filtrada() %>%
+            filter(fecha_vacunacion >= input$fecha[1] &
+                       fecha_vacunacion <= input$fecha[2]) %>%
             pivot_wider(
                 id_cols = fecha_vacunacion,
                 values_from = n,
