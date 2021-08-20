@@ -205,6 +205,19 @@ body <- dashboardBody(
                    status = "success",
                    plotOutput("grafico_vacunaciones")
                    )
+               ),
+        
+        column(width = 4,
+               
+               infoBoxOutput("positivos_filtrado", width = NULL)
+               # textOutput("positivos_filtrado")
+               # infoBox(
+               #   "Positivos",
+               #   "positivos_filtrado",
+               #   # prettyNum(positivos_filtrado, big.mark = " "),
+               #   width = NULL,
+               #   fill = TRUE
+               # )
                )
     )
 
@@ -314,6 +327,27 @@ server <- function(input, output, session) {
                 filter (fecha_fallecimiento == fecha_actualizacion) %>%
                 pull()
         })
+    
+    # Valores de la zona filtrada
+    output$positivos_filtrado <- renderInfoBox({
+        infoBox(
+            "Positivos en la zona",
+            positivos_filtrada() %>% 
+                summarize(n = sum(n)) %>% 
+                pull() %>% 
+                as.character(),
+            # width = 4,
+            fill = TRUE
+        )
+    })
+    
+    # output$positivos_filtrado <- renderText({
+    #     positivos_filtrada() %>% 
+    #         summarize(n = sum(n)) %>% 
+    #         pull() %>% 
+    #         as.character()
+    # })
+    
 
     # Gráficos
 
