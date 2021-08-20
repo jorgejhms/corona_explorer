@@ -236,60 +236,106 @@ server <- function(input, output, session) {
         updateSelectInput(
             session,
             "provincia",
-            choices =
+            choices = c(
+                "Todos",
                 positivos %>%
-                filter(departamento == input$departamento) %>%
-                pull(provincia) %>%
-                unique()
+                    filter(departamento == input$departamento) %>%
+                    pull(provincia) %>%
+                    unique()
+            ),
+            selected = "Todos"
         )
-        
-        
     })
     
     observe({
         updateSelectInput(
             session,
             "distrito",
-            choices = positivos %>%
-                filter(provincia == input$provincia) %>%
-                pull(distrito) %>%
-                unique()
+            choices = c(
+                "Todos",
+                positivos %>%
+                    filter(provincia == input$provincia) %>%
+                    pull(distrito) %>%
+                    unique()
+            ),
+            selected = "Todos"
         )
     })
     
-    
-    
-    # Filtros de regiones
+    # Filtros de regiones (Casos positivos)
     positivos_filtrada <- reactive({
-        if (input$departamento != "Todos") {
+        if (input$departamento != "Todos" &
+            input$provincia != "Todos" &
+            input$distrito != "Todos") {
             positivos <- positivos %>%
-                filter(departamento == input$departamento) %>% 
-                filter(provincia == input$provincia) %>% 
+                filter(departamento == input$departamento) %>%
+                filter(provincia == input$provincia) %>%
                 filter(distrito == input$distrito)
         } else {
-            positivos <- positivos
+            if (input$departamento != "Todos" &
+                input$provincia != "Todos") {
+                positivos <- positivos %>%
+                    filter(departamento == input$departamento) %>%
+                    filter(provincia == input$provincia)
+            } else {
+                if (input$departamento != "Todos") {
+                    positivos <- positivos %>%
+                        filter(departamento == input$departamento)
+                } else{
+                    positivos <- positivos
+                }
+            }
         }
     })
     
+    # Filtros de regiones (Casos fallecidos)
     fallecidos_filtrada <- reactive({
-        if (input$departamento != "Todos") {
+        if (input$departamento != "Todos" &
+            input$provincia != "Todos" &
+            input$distrito != "Todos") {
             fallecidos <- fallecidos %>%
-                filter(departamento == input$departamento) %>% 
-                filter(provincia == input$provincia) %>% 
+                filter(departamento == input$departamento) %>%
+                filter(departamento == input$provincia) %>%
                 filter(distrito == input$distrito)
         } else {
-            fallecidos <- fallecidos
-        }
-    })
+            if (input$departamento != "Todos" &
+                input$provincia != "Todos") {
+                fallecidos <- fallecidos %>%
+                    filter(departamento == input$departamento) %>%
+                    filter(provincia == input$provincia)
+            } else {
+                if (input$departamento != "Todos") {
+                    fallecidos <- fallecidos %>%
+                        filter(departamento == input$departamento)
+                } else {
+                    fallecidos <- fallecidos
+                }
+            }}
+        })
     
+    # Filtro de zona (Vacunaciones)
     vacunacion_filtrada <- reactive({
-        if (input$departamento != "Todos") {
+        if (input$departamento != "Todos" &
+            input$provincia != "Todos" &
+            input$distrito != "Todos") {
             vacunacion <- vacunacion %>%
-                filter(departamento == input$departamento) %>% 
-                filter(provincia == input$provincia) %>% 
+                filter(departamento == input$departamento) %>%
+                filter(provincia == input$provincia) %>%
                 filter(distrito == input$distrito)
         } else {
-            vacunacion <- vacunacion
+            if (input$departamento != "Todos" &
+                input$provincia != "Todos") {
+                vacunacion <- vacunacion %>%
+                    filter(departamento == input$departamento) %>%
+                    filter(provincia == input$provincia)
+            } else {
+                if (input$departamento != "Todos") {
+                    vacunacion <- vacunacion %>%
+                        filter(departamento == input$departamento)
+                } else {
+                    vacunacion <- vacunacion
+                }
+            }
         }
     })
     
