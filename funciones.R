@@ -102,10 +102,10 @@ sum_casos <- function(DataFrame) {
 }
 
 
-suma_poblacion <- function(DataFrame) {
+suma_poblacion <- function(DataFrame, value) {
   DataFrame <- DataFrame %>% 
     group_by(departamento, provincia, distrito) %>%
-    summarise(n = sum(cantidad))
+    summarise(n = sum({{value}}))
 }
 
 
@@ -113,4 +113,28 @@ filtra_fechas <- function(DataFrame, fecha, fecha_inicio, fecha_fin){
   # Filtra DF según las fechas dadas
   DataFrame %>% 
     filter( {{fecha}} >= fecha_inicio & {{fecha}} <= fecha_fin)
+}
+
+### Funcion Indicador ###
+
+calculo_indicador <- function(Positivos, Vacunacion, Poblacion, Pobreza) {
+  a = 3.4 ## dummy casos positivos
+  b = 2.4 ## dummy pobreza monetaria
+  c = -1.4 ## dummy vacunación
+  st.d = -1000 ## dummy
+  me = 30000 ## dummy
+  
+  Positivos <- Positivos %>% group_by(departamento, provincia, distrito) %>%
+    summarise(positivos = sum(n))
+  Vacunacion <- Vacunacion %>% group_by(departamento, provincia, distrito) %>%
+    summarise(vacunacion = sum(n))
+  
+  tabla <- left_join(Positivos, Vacunacion)
+  tabla <- left_join(tabla, Pobreza)
+  tabla <- left_join(tabla, Poblacion)
+  tabla <- tabla %>%
+    mutate(raw_vulnerabilidad = (positivos*a + ((vacunacion/(poblacion/10000))*c) + pobreza*b)) %>%
+    mutate(indice_vulnerabilidad = 50+10*((raw_vulnerabilidad-me)/(st.d^2)))
+  
+  mean(tabla$indice_vulnerabilidad, na.rm = T)
 }

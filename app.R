@@ -20,6 +20,7 @@ memory.size() # Solo Windows
 positivos <- fst::read_fst("data/positivos.fst")
 fallecidos <- fst::read_fst("data/fallecidos.fst")
 vacunacion <- fst::read_fst("data/vacunacion.fst")
+poblacion <- fst::read_fst("data/poblacion_inei.fst")
 
 # Funciones
 source("funciones.R")

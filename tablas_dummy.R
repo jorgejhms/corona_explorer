@@ -25,50 +25,42 @@ suma_poblacion <- function(DataFrame) {
 suma_poblacion(poblacion_inei)
 
 
-### Usando la data de positivos
+### Usando la data de positivos (dummy de pobreza) ###
 
 dummy <- positivos
-poblacion <- sample(5000:300000, 1872)
+dummy <- positivos %>% select(departamento, provincia, distrito)
+dummy <- distinct(dummy, distrito, .keep_all=TRUE)
 
-dummy <- dummy_pobl %>%
-  select(c("departamento", "provincia", "distrito"))
+pobreza <- round(runif(1697, min=0.1, max=81.3),1)
 
-dummy <- unique(dummy)
-
-### dummy población
-
-dummy_pobl <- dummy
-dummy_pobl$poblacion <- poblacion
-
-dummy_pobl
-
-### dummy Otras variables
-
-imc <- round(runif(1872, min=16, max=40),1)
-pobreza <- round(runif(1872, min=0.1, max=81.3),1)
-
-dummy_vars <- dummy
-dummy_vars$imc <- imc
-dummy_vars$pobreza <- pobreza
-
-dummy_vars
-
-write_fst(dummy_vars, "data/dummy_vars.fst")
-write_fst(dummy_pobl, "data/dummy_poblacion.fst")
+dummy_pobreza <- dummy
+dummy_pobreza$pobreza <- pobreza
 
 
-#### DUMMYs
-
-##### IDEAS AUN no trabajadas
+##### FORMULA DE INDICADOR #####
 
 ## transformando las variables de vacunacion y casos positivos
 
-indicadores_normalizados <- data.frame(scale(tabla_indicador[,c(4:9)],center=T,scale=T))
-nombres <- tabla_indicador %>% select(1:3)
+calculo_indicador <- function(Positivos, Vacunacion, Poblacion, Pobreza) {
+  a = 3.4 ## dummy casos positivos
+  b = 2.4 ## dummy pobreza monetaria
+  c = -1.4 ## dummy vacunación
+  st.d = -1000 ## dummy
+  me = 30000 ## dummy
+    
+  Positivos <- Positivos %>% group_by(departamento, provincia, distrito) %>%
+    summarise(positivos = sum(n))
+  Vacunacion <- Vacunacion %>% group_by(departamento, provincia, distrito) %>%
+    summarise(vacunacion = sum(n))
+  
+  tabla <- left_join(Positivos, Vacunacion)
+  tabla <- left_join(tabla, Pobreza)
+  tabla <- left_join(tabla, Poblacion)
+  tabla <- tabla %>%
+    mutate(raw_vulnerabilidad = (positivos*a + ((vacunacion/(poblacion/10000))*c) + pobreza*b)) %>%
+    mutate(indice_vulnerabilidad = 50+10*((raw_vulnerabilidad-me)/(st.d^2)))
+  
+  mean(tabla$indice_vulnerabilidad, na.rm = T)
+}
 
-tabla_indicador_escalada <- cbind(nombres, indicadores_normalizados) %>%
-  mutate(raw_vulnerabilidad = (n_positivos - ratio_vacunados + imc + pobreza)) %>%
-  mutate(index_vulnerabilidad = (n_positivos - ratio_vacunados + imc + pobreza))
-
-### Dividirlo por tres cuartiles ###
 

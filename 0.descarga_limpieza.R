@@ -107,6 +107,8 @@ vacunacion <- vacunacion %>%
     grupo_riesgo
   )
 
+poblacion_inei <- suma_poblacion(poblacion_inei, cantidad)
+
 # Guardado data -----------------------------------------------------------
 
 write_fst(positivos, "data/positivos.fst")
