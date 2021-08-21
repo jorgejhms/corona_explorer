@@ -21,6 +21,7 @@ positivos <- fst::read_fst("data/positivos.fst")
 fallecidos <- fst::read_fst("data/fallecidos.fst")
 vacunacion <- fst::read_fst("data/vacunacion.fst")
 poblacion <- fst::read_fst("data/poblacion_inei.fst")
+pobreza <- fst::read_fst("data/dummy_pobreza.fst") # Data Dummy
 
 # Funciones
 source("funciones.R")
@@ -175,11 +176,11 @@ body <- dashboardBody(
     ),
 
 
-    textOutput("positivos_dia"),
-    textOutput("fallecidos_dia"),
-    textOutput("vacunados_dia"),
-    textOutput("primera_dosis_dia"),
-    textOutput("segunda_dosis_dia"),
+    # textOutput("positivos_dia"),
+    # textOutput("fallecidos_dia"),
+    # textOutput("vacunados_dia"),
+    # textOutput("primera_dosis_dia"),
+    # textOutput("segunda_dosis_dia"),
 
     # Gráficos
 
@@ -211,7 +212,9 @@ body <- dashboardBody(
         column(width = 4,
                infoBoxOutput("positivos_zona", width = NULL),
                infoBoxOutput("fallecidos_zona", width = NULL),
-               infoBoxOutput("vacunaciones_zona", width = NULL)
+               infoBoxOutput("vacunaciones_zona", width = NULL),
+               infoBoxOutput("poblacion_zona", width = NULL),
+               infoBoxOutput("indicador_zona", width = NULL)
                )
     )
 
@@ -275,6 +278,24 @@ server <- function(input, output, session) {
     # Filtro de zona (Vacunaciones)
     vacunacion_filtrada <- reactive({
         filtra_zona(vacunacion,
+                    input$departamento,
+                    input$provincia,
+                    input$distrito)
+    })
+    
+    # Filtro de zona (Población)
+    poblacion_filtrada <- reactive({
+        filtra_zona(
+            poblacion,
+            input$departamento,
+            input$provincia,
+            input$distrito
+        )
+    })
+    
+    # Filtro de zona (Pobreza)
+    pobreza_filtrada <- reactive({
+        filtra_zona(pobreza,
                     input$departamento,
                     input$provincia,
                     input$distrito)
@@ -366,6 +387,41 @@ server <- function(input, output, session) {
            color = "green"
        )
    })
+   
+   output$poblacion_zona <- renderInfoBox({
+       infoBox(
+           "Población",
+           sum_casos(poblacion_filtrada()),
+           fill = TRUE,
+           color = "blue"
+       )
+   })
+   
+   output$indicador_zona <- renderInfoBox(({
+       infoBox(
+           "Indicador de riesgo",
+           unifica_tablas(
+               positivos_filtrada() %>%
+                   filtra_fechas(
+                       fecha_resultado,
+                       input$fecha[1],
+                       input$fecha[2]
+                       ),
+               vacunacion_filtrada()%>%
+                   filtra_fechas(
+                       fecha_vacunacion,
+                       input$fecha[1],
+                       input$fecha[2]
+                   ),
+               poblacion_filtrada(),
+               pobreza_filtrada()
+           ) %>%
+               calculo_indicador() %>% 
+               round(2),
+           fill = TRUE,
+           color = "yellow"
+       )
+   }))
 
     # Gráficos
 
