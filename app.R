@@ -11,6 +11,7 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(shinydashboard)
+library(flexdashboard)
 
 # aumento memoría
 memory.limit(size = 250000) # Solo windows
@@ -214,7 +215,8 @@ body <- dashboardBody(
                infoBoxOutput("fallecidos_zona", width = NULL),
                infoBoxOutput("vacunaciones_zona", width = NULL),
                infoBoxOutput("poblacion_zona", width = NULL),
-               infoBoxOutput("indicador_zona", width = NULL)
+               infoBoxOutput("indicador_zona", width = NULL),
+               flexdashboard::gaugeOutput("indicador_gauge", width = NULL)
                )
     )
 
@@ -422,6 +424,33 @@ server <- function(input, output, session) {
            color = "yellow"
        )
    }))
+   
+   output$indicador_gauge <- flexdashboard::renderGauge({
+       # Semaforo indicador
+       gauge(
+           unifica_tablas(
+               positivos_filtrada() %>%
+                   filtra_fechas(fecha_resultado,
+                                 input$fecha[2] - 90,
+                                 input$fecha[2]),
+               vacunacion_filtrada() %>%
+                   filtra_fechas(fecha_vacunacion,
+                                 input$fecha[2] - 90,
+                                 input$fecha[2]),
+               poblacion_filtrada(),
+               pobreza_filtrada()
+           ) %>%
+               calculo_indicador() %>%
+               round(2),
+           min = -100,
+           max = 100,
+           gaugeSectors(
+               success = c(-100, 0),
+               warning = c(0, 14.9),
+               danger = c(14.9, 100)
+           )
+       )
+   })
 
     # Gráficos
 
