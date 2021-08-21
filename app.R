@@ -21,7 +21,7 @@ positivos <- fst::read_fst("data/positivos.fst")
 fallecidos <- fst::read_fst("data/fallecidos.fst")
 vacunacion <- fst::read_fst("data/vacunacion.fst")
 poblacion <- fst::read_fst("data/poblacion_inei.fst")
-pobreza <- fst::read_fst("data/dummy_pobreza.fst") # Data Dummy
+pobreza <- fst::read_fst("data/pobreza.fst")
 
 # Funciones
 source("funciones.R")
@@ -404,13 +404,13 @@ server <- function(input, output, session) {
                positivos_filtrada() %>%
                    filtra_fechas(
                        fecha_resultado,
-                       input$fecha[1],
+                       input$fecha[2]-90,
                        input$fecha[2]
                        ),
                vacunacion_filtrada()%>%
                    filtra_fechas(
                        fecha_vacunacion,
-                       input$fecha[1],
+                       input$fecha[2]-90,
                        input$fecha[2]
                    ),
                poblacion_filtrada(),

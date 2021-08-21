@@ -19,6 +19,7 @@ fallecidos <-
   data.table::fread("data/fallecidos_covid.csv", sep = ";")
 vacunacion <- data.table::fread("data/vacunas_covid.csv", sep = ",")
 poblacion_inei <- data.table::fread("data/TB_POBLACION_INEI.csv") 
+pobreza <- data.table::fread("data/pobreza.csv") 
 
 # Funciones
 source("funciones.R")
@@ -82,6 +83,16 @@ poblacion_inei <- poblacion_inei %>%
     provincia = str_to_title(provincia),
     distrito = str_to_title(distrito))
 
+pobreza <- pobreza %>%
+  clean_names() %>%
+  mutate(
+    departamento = str_to_title(departamento),
+    provincia = str_to_title(provincia),
+    distrito = str_to_title(distrito))
+
+pobreza <- modify_if(pobreza, is.character, str_trim) 
+
+
 # Transformación por distrito ---------------------------------------------
 
 positivos <- positivos %>%
@@ -115,3 +126,4 @@ write_fst(positivos, "data/positivos.fst")
 write_fst(fallecidos, "data/fallecidos.fst")
 write_fst(vacunacion, "data/vacunacion.fst")
 write_fst(poblacion_inei, "data/poblacion_inei.fst")
+write_fst(pobreza, "data/pobreza.fst")
