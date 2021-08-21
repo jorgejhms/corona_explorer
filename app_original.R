@@ -442,12 +442,12 @@ server <- function(input, output, session) {
            ) %>%
                calculo_indicador() %>%
                round(2),
-           min = -20,
-           max = 20,
+           min = -100,
+           max = 100,
            gaugeSectors(
-               success = c(-20, -0.2),
-               warning = c(-0.2, 0.1),
-               danger = c(0.1, 20)
+               success = c(-100, 0),
+               warning = c(0, 14.9),
+               danger = c(14.9, 100)
            )
        )
    })

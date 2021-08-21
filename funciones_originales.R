@@ -135,15 +135,15 @@ unifica_tablas <- function(Positivos, Vacunacion, Poblacion, Pobreza){
 }
 
 calculo_indicador <- function(DataFrame) {
-  a = 0.41
-  b = -0.17
-  c = -0.19
-  d = 0.72 
-  st.d = 135.73
-  me = 35.18
+  a = 0.27
+  b = -0.06
+  c = 0.003
+  d = 1.86 
+  st.d = 26.52
+  me = 80.17
   
   DataFrame %>%
-    mutate(raw = d + positivos*a + (vacunacion/poblacion)*c + pobreza*b) %>%
+    mutate(raw = d + positivos*a + vacunacion*c + pobreza*b) %>%
     mutate(indice = (raw - me)/(st.d)) %>%
     summarise(mean = mean(indice, na.rm = TRUE)) %>%
     pull()
