@@ -35,6 +35,7 @@ pobreza <- round(runif(1697, min=0.1, max=81.3),1)
 
 dummy_pobreza <- dummy
 dummy_pobreza$pobreza <- pobreza
+write_fst(dummy_pobreza, "data/dummy_pobreza.fst")
 
 
 ##### FORMULA DE INDICADOR #####

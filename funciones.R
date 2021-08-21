@@ -117,24 +117,37 @@ filtra_fechas <- function(DataFrame, fecha, fecha_inicio, fecha_fin){
 
 ### Funcion Indicador ###
 
-calculo_indicador <- function(Positivos, Vacunacion, Poblacion, Pobreza) {
+unifica_tablas <- function(Positivos, Vacunacion, Poblacion, Pobreza){
+  Positivos <- Positivos %>%
+    group_by(departamento, provincia, distrito) %>%
+    summarise(positivos = sum(n))
+  
+  Vacunacion <- Vacunacion %>%
+    group_by(departamento, provincia, distrito) %>%
+    summarise(vacunacion = sum(n))
+  
+  Poblacion <- Poblacion %>% rename(poblacion = n)
+  
+  tabla <- left_join(Positivos, Vacunacion) %>%
+    left_join(Pobreza) %>%
+    left_join(Poblacion) %>% 
+    ungroup()
+}
+
+calculo_indicador <- function(DataFrame) {
   a = 3.4 ## dummy casos positivos
   b = 2.4 ## dummy pobreza monetaria
   c = -1.4 ## dummy vacunación
   st.d = -1000 ## dummy
   me = 30000 ## dummy
   
-  Positivos <- Positivos %>% group_by(departamento, provincia, distrito) %>%
-    summarise(positivos = sum(n))
-  Vacunacion <- Vacunacion %>% group_by(departamento, provincia, distrito) %>%
-    summarise(vacunacion = sum(n))
-  
-  tabla <- left_join(Positivos, Vacunacion)
-  tabla <- left_join(tabla, Pobreza)
-  tabla <- left_join(tabla, Poblacion)
-  tabla <- tabla %>%
-    mutate(raw_vulnerabilidad = (positivos*a + ((vacunacion/(poblacion/10000))*c) + pobreza*b)) %>%
-    mutate(indice_vulnerabilidad = 50+10*((raw_vulnerabilidad-me)/(st.d^2)))
-  
-  mean(tabla$indice_vulnerabilidad, na.rm = T)
+  DataFrame %>%
+    mutate(raw = (positivos * a + ((
+      vacunacion / (poblacion / 10000)
+    ) * c) + pobreza * b)) %>%
+    mutate(indice = 50 + 10 * ((raw - me) /
+                                 (st.d ^ 2))) %>%
+    summarise(mean = mean(indice, na.rm = TRUE)) %>%
+    pull()
 }
+
